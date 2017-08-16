@@ -1,0 +1,7 @@
+/vendor
+.idea/
+todo.me
+sftp-config.json
+install.lock
+storage/
+composer.lock
