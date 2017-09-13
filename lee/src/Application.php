@@ -285,8 +285,8 @@ class Application {
 	 *
 	 * @return string
 	 */
-	public function appPath() {
-		return $this->basePath . DIRECTORY_SEPARATOR . 'app';
+	public function appPath($path = null) {
+		return $this->basePath('app') . ($path ? '/' . ltrim($path, '/') : $path);
 	}
 
 	/**
@@ -297,7 +297,7 @@ class Application {
 	 */
 	public function basePath($path = null) {
 		if (isset($this->basePath)) {
-			return $this->basePath . ($path ? '/' . $path : $path);
+			return $this->basePath . ($path ? '/' . ltrim($path, '/') : $path);
 		}
 
 		if ($this->runningInConsole()) {
@@ -316,7 +316,11 @@ class Application {
 	 * @return string
 	 */
 	public function storagePath($path = null) {
-		return $this->basePath() . '/storage' . ($path ? '/' . $path : $path);
+		$path = $this->basePath('storage') . ($path ? '/' . ltrim($path, '/') : $path);
+		if (!is_dir($path)) {
+			@mkdir($path, 755, true);
+		}
+		return $path;
 	}
 
 	/**

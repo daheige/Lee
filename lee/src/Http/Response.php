@@ -145,13 +145,17 @@ class Response {
 	 * Get and set header
 	 * @param  string      $name  Header name
 	 * @param  string|null $value Header value
-	 * @return string      Header value
+	 * @return string|obj         Header value | self
 	 */
 	public function header($name, $value = null) {
+		if (is_array($name)) {
+		 	$this->headers->replace($name);
+		 	return $this;
+		}
 		if (!is_null($value)) {
 			$this->headers->set($name, $value);
+		 	return $this;
 		}
-
 		return $this->headers->get($name);
 	}
 
@@ -171,6 +175,7 @@ class Response {
 
 	public function setBody($content) {
 		$this->write($content, true);
+		return $this;
 	}
 
 	/**
@@ -184,7 +189,6 @@ class Response {
 		if (!is_null($body)) {
 			$this->write($body, true);
 		}
-
 		return $this->body;
 	}
 
@@ -201,7 +205,6 @@ class Response {
 			$this->body .= (string) $body;
 		}
 		$this->length = strlen($this->body);
-
 		return $this->body;
 	}
 

@@ -1,14 +1,16 @@
 <?php
 return [
 	// Debugging
-	'debug'                 => true,
+	'debug'                 => false,
 	// Logging
     'log' => [
         'type' => 'File'
     ],
+
 	// View
 	'templates.path'        => './templates',
 	'view'                  => '\Lee\View',
+
 	// Cookies
 	'cookies'               => [
 		'encrypt'     => false,
@@ -28,12 +30,12 @@ return [
 	'routes.case_sensitive' => true,
 
 	/* 默认设定 */
-	'DEFAULT_LANG'          => 'zh-cn', // 默认语言
-	'DEFAULT_CONTROLLER'    => 'Index', // 默认控制器名称
-	'DEFAULT_ACTION'        => 'index', // 默认操作名称
-	'DEFAULT_CHARSET'       => 'utf-8', // 默认输出编码
-	'DEFAULT_TIMEZONE'      => 'PRC', // 默认时区
-	'DEFAULT_AJAX_RETURN'   => 'JSON', // 默认AJAX 数据返回格式,可选JSON XML ...
-	'DEFAULT_JSONP_HANDLER' => 'jsonpReturn', // 默认JSONP格式返回的处理方法
-	'DEFAULT_FILTER'        => 'htmlspecialchars', // 默认参数过滤方法 用于I函数...
+	'default_lang'          => 'zh-cn', // 默认语言
+	'default_controller'    => 'Index', // 默认控制器名称
+	'default_action'        => 'index', // 默认操作名称
+	'default_charset'       => 'utf-8', // 默认输出编码
+	'default_timezone'      => 'prc', // 默认时区
+
+	'default_ajax_return'   => 'json', // 默认 ajax 数据返回格式
+	'default_jsonp_handler' => 'jsonp_return', // 默认jsonp格式返回的处理方法
 ];

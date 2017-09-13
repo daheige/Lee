@@ -5,7 +5,8 @@
     "license": "MIT",
     "type": "project",
     "require": {
-        "php": ">=5.4.0"
+        "php": ">=5.4.0",
+        "lee/blade": "1.*"
     },
     "autoload": {
         "psr-4": {
@@ -13,12 +14,15 @@
             "Lee\\": "lee/src/"
         }
     },
-    "repositories": {
-        "packagist": {
+    "repositories": [
+        {
             "type": "composer",
             "url": "https://packagist.phpcomposer.com"
+        }, {
+            "type": "vcs",
+            "url": "git@github.com:xiaoyao-work/lee-blade.git"
         }
-    },
+    ],
     "config": {
         "preferred-install": "dist",
         "sort-packages": true

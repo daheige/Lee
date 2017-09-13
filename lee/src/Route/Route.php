@@ -189,7 +189,8 @@ class Route {
 	 * 设置controller
 	 */
 	public function setController($controller) {
-		$this->controller = $controller;
+		$controller = explode('/', str_replace('\\', '/', $controller));
+		$this->controller = end($controller);
 	}
 
 	/**
@@ -227,6 +228,8 @@ class Route {
 			$class    = $matches[1];
 			$method   = $matches[2];
 			$callable = function () use ($class, $method) {
+				$this->setController($class);
+				$this->setAction($method);
 				static $obj = null;
 				if ($obj === null) {
                     $class = '\\' . trim($this->namespace, '\\') . '\\' . trim($class, '\\');
