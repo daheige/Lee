@@ -102,9 +102,11 @@ class Application {
 		$this->container['settings'] = $this->getDefaultSettings();
         // load system config
         $this->configure('app');
+
+        $this->registerAliases();
 		// Default log
 		$this->container->singleton('log', function ($c) {
-			return new \Lee\Log($c['settings']['log']);
+			return new \Log($c['settings']['LOG']);
 		});
 		// Default environment
 		$this->container->singleton('environment', function ($c) {
@@ -112,17 +114,17 @@ class Application {
 		});
 		// Default request
 		$this->container->singleton('request', function ($c) {
-			return new \Lee\Http\Request($c['environment']);
+			return new \Request($c['environment']);
 		});
 
 		// Default response
 		$this->container->singleton('response', function ($c) {
-			return new \Lee\Http\Response();
+			return new \Response();
 		});
 
 		// Default router
 		$this->container->singleton('router', function ($c) {
-			return new \Lee\Route\Router();
+			return new \Router();
 		});
 
 		// Define default middleware stack
@@ -142,11 +144,24 @@ class Application {
 	}
 
 	/**
+	 * 添加别名映射
+	 * @return [type] [description]
+	 */
+	public function registerAliases() {
+		$aliases = $this->config('aliases');
+		if (is_array($aliases)) {
+			foreach ($aliases as $key => $value) {
+				class_alias($value, $key);
+			}
+		}
+	}
+
+	/**
 	 * Get default application settings
 	 * @return array
 	 */
 	public function getDefaultSettings() {
-		return [
+		return array_change_key_case([
 			// Application
 			'mode'                  => 'development',
 			// Debugging
@@ -175,7 +190,7 @@ class Application {
 			'http.version'          => '1.1',
 			// Routing
 			'routes.case_sensitive' => true,
-		];
+		], CASE_UPPER);
 	}
 
 	/**
@@ -215,13 +230,14 @@ class Application {
 			return;
 		}
 		$this->loadedConfigurations[$name] = true;
-		$app_config_path                   = $this->basePath('config') . '/' . $name . '.php';
-		if (file_exists($app_config_path)) {
-			$this->config(require $app_config_path);
-		} elseif (file_exists($app_config_path = __DIR__ . '/../config/' . $name . '.php')) {
-			$this->config(require $app_config_path);
+		$default_config_path = realpath(__DIR__ . '/../config/' . $name . '.php');
+		if (file_exists($default_config_path)) {
+			$this->config(require $default_config_path);
 		}
-
+		$self_config_path = $this->basePath('config') . '/' . $name . '.php';
+		if (file_exists($self_config_path)) {
+			$this->config(require $self_config_path);
+		}
 		if (defined('APP_ENV')) {
 			if (file_exists($custom_config_path = $this->basePath('config') . '/' . APP_ENV . '/' . $name . '.php')) {
 				$this->config(require $custom_config_path);
@@ -248,11 +264,11 @@ class Application {
 	 * @param  mixed        $value If name is a string, the value of the setting identified by $name
 	 * @return mixed        The value of a setting if only one argument is a string
 	 */
-	public function config($name, $value = true) {
+	public function config($name, $value = false) {
 		$c = $this->container;
 		if (is_array($name)) {
 			if (true === $value) {
-				$c['settings'] = array_merge_recursive($c['settings'], array_change_key_case($name, CASE_UPPER));
+				$c['settings'] = array_replace_recursive($c['settings'], array_change_key_case($name, CASE_UPPER));
 			} else {
 				$c['settings'] = array_merge($c['settings'], array_change_key_case($name, CASE_UPPER));
 			}
@@ -278,6 +294,7 @@ class Application {
 			}
 			$c['settings'] = $settings;
 		}
+		return null;
 	}
 
 	/**
@@ -524,14 +541,15 @@ class Application {
 	 * @param bool       $secure   Indicates that the cookie should only be transmitted over a secure
 	 * @param bool       $httponly When TRUE the cookie will be made accessible only through the HTTP protocol
 	 */
-	public function setCookie($name, $value, $time = null, $path = null, $domain = null, $secure = null, $httponly = null) {
+	public function setCookie($name, $value, $options = []) {
+		$options = array_merge($this->config('cookies'), $options);
 		$settings = [
 			'value'    => $value,
-			'expires'  => is_null($time) ? $this->config('cookies.expires') : $time,
-			'path'     => is_null($path) ? $this->config('cookies.path') : $path,
-			'domain'   => is_null($domain) ? $this->config('cookies.domain') : $domain,
-			'secure'   => is_null($secure) ? $this->config('cookies.secure') : $secure,
-			'httponly' => is_null($httponly) ? $this->config('cookies.httponly') : $httponly,
+			'expires'  => $options['expires'],
+			'path'     => $options['path'],
+			'domain'   => $options['domain'],
+			'secure'   => $options['secure'],
+			'httponly' => $options['httponly'],
 		];
 		$this->response->cookies->set($name, $settings);
 	}
@@ -550,7 +568,7 @@ class Application {
 	public function getCookie($name, $deleteIfInvalid = true) {
 		// Get cookie value
 		$value = $this->request->cookies->get($name);
-
+		var_dump($value);
 		// Decode if encrypted
 		if ($this->config('cookies.encrypt')) {
 			$value = \Lee\Http\Util::decodeSecureCookie(
@@ -559,6 +577,7 @@ class Application {
 				$this->config('cookies.cipher'),
 				$this->config('cookies.cipher_mode')
 			);
+			var_dump($value);
 			if ($value === false && $deleteIfInvalid) {
 				$this->deleteCookie($name);
 			}

@@ -58,12 +58,8 @@ if (!function_exists('config')) {
 		if (is_null($key)) {
 			return app()->settings;
 		}
-
-		if (is_array($key)) {
-			return app('config')->set($key);
-		}
-
-		return app('config')->get($key, $default);
+		$config = app()->config($key);
+		return is_null($config) ? $default : $config;
 	}
 }
 

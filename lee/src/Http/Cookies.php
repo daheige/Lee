@@ -2,37 +2,14 @@
 namespace Lee\Http;
 
 class Cookies extends \Lee\Helper\Set {
-    /**
-     * Default cookie settings
-     * @var array
-     */
-    protected $defaults = array(
-        'value' => '',
-        'domain' => null,
-        'path' => null,
-        'expires' => null,
-        'secure' => false,
-        'httponly' => false
-    );
-
-	/**
-	 * Constructor
-	 */
-	public function __construct($config = []) {
-		$this->defaults = array_merge([
-			'value'       => '',
-			'encrypt'     => false,
-			'expires'     => 0,
-			'path'        => '/',
-			'domain'      => null,
-			'secure'      => false,
-			'httponly'    => false,
-			// Encryption
-			'secret_key'  => 'CHANGE_ME',
-			'cipher'      => MCRYPT_RIJNDAEL_256,
-			'cipher_mode' => MCRYPT_MODE_CBC,
-		], $config);
-	}
+	protected $defaults = [
+		'value'       => '',
+		'expires'     => 0,
+		'path'        => '/',
+		'domain'      => null,
+		'secure'      => false,
+		'httponly'    => false,
+	];
 
 	/**
 	 * Set cookie
@@ -54,6 +31,7 @@ class Cookies extends \Lee\Helper\Set {
 		} else {
 			$cookieSettings = array_replace($this->defaults, ['value' => $value]);
 		}
+		$cookieSettings['expires'] = empty($cookieSettings['expires']) ? 0 : time() + $cookieSettings['expires'];
 		parent::set($key, $cookieSettings);
 	}
 

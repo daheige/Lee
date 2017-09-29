@@ -109,6 +109,7 @@ class Response {
 	 * @param \Lee\Http\Headers|array $headers The HTTP response headers
 	 */
 	public function __construct($body = '', $status = 200, $headers = []) {
+		$this->app = app();
 		$this->setStatus($status);
 		$this->headers = new \Lee\Http\Headers(['Content-Type' => 'text/html']);
 		$this->headers->replace($headers);
@@ -252,7 +253,7 @@ class Response {
         list($status, $headers, $body) = $this->finalize();
 
         // Serialize cookies (with optional encryption)
-        \Lee\Http\Util::serializeCookies($headers, $this->cookies);
+        \Lee\Http\Util::serializeCookies($headers, $this->cookies, $this->app->config('cookies'));
 
         //Send headers
         if (headers_sent() === false) {
@@ -260,7 +261,7 @@ class Response {
             if (strpos(PHP_SAPI, 'cgi') === 0) {
                 header(sprintf('Status: %s', static::getMessageForCode($status)));
             } else {
-                header(sprintf('HTTP/%s %s', app()->config('http.version'), static::getMessageForCode($status)));
+                header(sprintf('HTTP/%s %s', $this->app->config('http.version'), static::getMessageForCode($status)));
             }
 
             //Send headers
@@ -273,7 +274,7 @@ class Response {
         }
 
         //Send body, but only if it isn't a HEAD request
-        if (!app()->request->isHead()) {
+        if (!$this->app->request->isHead()) {
             echo $body;
         }
     }

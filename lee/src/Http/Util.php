@@ -146,26 +146,23 @@ class Util {
      * @param \Lee\Http\Cookies $cookies The Response cookies
      * @param array              $config  The Lee app cookies settings
      */
-    public static function serializeCookies(\Lee\Http\Headers &$headers, \Lee\Http\Cookies $cookies) {
-        if ($cookies->defaults['encrypt']) {
-            foreach ($cookies as $name => $settings) {
+    public static function serializeCookies(\Lee\Http\Headers &$headers, \Lee\Http\Cookies $cookies, array $config) {
+        foreach ($cookies as $name => $settings) {
+            if ($config['encrypt'] && (!isset($settings['encrypt']) || $settings['encrypt'] !== false)) {
                 if (is_string($settings['expires'])) {
                     $expires = strtotime($settings['expires']);
                 } else {
                     $expires = (int) $settings['expires'];
                 }
-
                 $settings['value'] = static::encodeSecureCookie(
                     $settings['value'],
                     $expires,
-                    $cookies->defaults['secret_key'],
-                    $cookies->defaults['cipher'],
-                    $cookies->defaults['cipher_mode']
+                    $config['secret_key'],
+                    $config['cipher'],
+                    $config['cipher_mode']
                 );
                 static::setCookieHeader($headers, $name, $settings);
-            }
-        } else {
-            foreach ($cookies as $name => $settings) {
+            } else {
                 static::setCookieHeader($headers, $name, $settings);
             }
         }

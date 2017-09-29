@@ -35,7 +35,7 @@ class File {
 	public function write($log, $level, $destination = '') {
 		$now = date($this->config['log_time_format']);
 		if (empty($destination)) {
-			$destination = $this->config['log_path'] . '/' . $level . '/' . date('y_m_d') . '/' . (empty($destination) ? 'common' : $destination) . '.log';
+			$destination = $this->config['log_path'] . '/' . date('y_m_d') . '/' . $level . '/' . (empty($destination) ? 'common' : $destination) . '.log';
 		}
 		// 自动创建日志目录
 		$log_dir = dirname($destination);

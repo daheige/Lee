@@ -270,7 +270,7 @@ class Router {
     protected function mapRoute($args) {
         $pattern  = array_shift($args);
         $callable = array_pop($args);
-        $route    = new \Lee\Route\Route($pattern, $callable, app()->settings['routes.case_sensitive']);
+        $route    = new \Lee\Route\Route($pattern, $callable, app()->config('routes.case_sensitive'));
         $this->addRoute($route);
         if (count($args) > 0) {
             $route->setMiddleware($args);
