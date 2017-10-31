@@ -53,7 +53,7 @@ class Request {
     public function __construct(\Lee\Environment $env) {
         $this->env     = $env;
         $this->headers = new \Lee\Http\Headers(\Lee\Http\Headers::extract($env));
-        $this->cookies = new \Lee\Helper\Set(\Lee\Http\Util::parseCookieHeader($env['HTTP_COOKIE']));
+        $this->cookies = app()->cookie;
     }
 
     /**
@@ -173,23 +173,23 @@ class Request {
      * @return array|mixed|null
      */
     public function get($key = null, $default = null) {
-        if (!isset($this->env['hhailuo.request.query_hash'])) {
+        if (!isset($this->env['lee.request.query_hash'])) {
             $output = [];
-            if (function_exists('mb_parse_str') && !isset($this->env['hhailuo.tests.ignore_multibyte'])) {
+            if (function_exists('mb_parse_str') && !isset($this->env['lee.tests.ignore_multibyte'])) {
                 mb_parse_str($this->env['QUERY_STRING'], $output);
             } else {
                 parse_str($this->env['QUERY_STRING'], $output);
             }
-            $this->env['hhailuo.request.query_hash'] = Util::stripSlashesIfMagicQuotes($output);
+            $this->env['lee.request.query_hash'] = Util::stripSlashesIfMagicQuotes($output);
         }
         if ($key) {
-            if (isset($this->env['hhailuo.request.query_hash'][$key])) {
-                return $this->env['hhailuo.request.query_hash'][$key];
+            if (isset($this->env['lee.request.query_hash'][$key])) {
+                return $this->env['lee.request.query_hash'][$key];
             } else {
                 return $default;
             }
         } else {
-            return $this->env['hhailuo.request.query_hash'];
+            return $this->env['lee.request.query_hash'];
         }
     }
 
@@ -205,31 +205,31 @@ class Request {
      * @return array|mixed|null
      */
     public function post($key = null, $default = null) {
-        if (!isset($this->env['hhailuo.input'])) {
-            throw new \RuntimeException('Missing hhailuo.input in environment variables');
+        if (!isset($this->env['lee.input'])) {
+            throw new \RuntimeException('Missing lee.input in environment variables');
         }
-        if (!isset($this->env['hhailuo.request.form_hash'])) {
-            $this->env['hhailuo.request.form_hash'] = [];
-            if ($this->isFormData() && is_string($this->env['hhailuo.input'])) {
+        if (!isset($this->env['lee.request.form_hash'])) {
+            $this->env['lee.request.form_hash'] = [];
+            if ($this->isFormData() && is_string($this->env['lee.input'])) {
                 $output = [];
-                if (function_exists('mb_parse_str') && !isset($this->env['hhailuo.tests.ignore_multibyte'])) {
-                    mb_parse_str($this->env['hhailuo.input'], $output);
+                if (function_exists('mb_parse_str') && !isset($this->env['lee.tests.ignore_multibyte'])) {
+                    mb_parse_str($this->env['lee.input'], $output);
                 } else {
-                    parse_str($this->env['hhailuo.input'], $output);
+                    parse_str($this->env['lee.input'], $output);
                 }
-                $this->env['hhailuo.request.form_hash'] = Util::stripSlashesIfMagicQuotes($output);
+                $this->env['lee.request.form_hash'] = Util::stripSlashesIfMagicQuotes($output);
             } else {
-                $this->env['hhailuo.request.form_hash'] = Util::stripSlashesIfMagicQuotes($_POST);
+                $this->env['lee.request.form_hash'] = Util::stripSlashesIfMagicQuotes($_POST);
             }
         }
         if ($key) {
-            if (isset($this->env['hhailuo.request.form_hash'][$key])) {
-                return $this->env['hhailuo.request.form_hash'][$key];
+            if (isset($this->env['lee.request.form_hash'][$key])) {
+                return $this->env['lee.request.form_hash'][$key];
             } else {
                 return $default;
             }
         } else {
-            return $this->env['hhailuo.request.form_hash'];
+            return $this->env['lee.request.form_hash'];
         }
     }
 
@@ -311,7 +311,7 @@ class Request {
      * @return string
      */
     public function getBody() {
-        return $this->env['hhailuo.input'];
+        return $this->env['lee.input'];
     }
 
     /**

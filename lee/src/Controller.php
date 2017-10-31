@@ -36,7 +36,7 @@ abstract class Controller {
 
 	public function __construct() {
 		$this->app  = app();
-		$this->view = new View();
+		$this->view = $this->app->view();
 	}
 
 	/**
@@ -52,7 +52,7 @@ abstract class Controller {
 	 */
 	protected function display($template = '', $data = null) {
         if (empty($template)) {
-        	$current_route = $this->app->router->getCurrentRoute();
+        	$current_route = $this->app->router()->getCurrentRoute();
             $template = strtolower($current_route->getController()) . '.' . $current_route->getAction();
         }
 		$this->view->display($template, $data);
@@ -70,7 +70,7 @@ abstract class Controller {
 	 */
 	protected function fetch($template = '', $data = null) {
         if (empty($template)) {
-        	$current_route = $this->app->router->getCurrentRoute();
+        	$current_route = $this->app->router()->getCurrentRoute();
             $template = strtolower($current_route->getController()) . '.' . $current_route->getAction();
         }
 		return $this->view->fetch($template, $data);

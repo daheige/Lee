@@ -63,18 +63,6 @@ if (!function_exists('config')) {
 	}
 }
 
-if (!function_exists('database_path')) {
-	/**
-	 * Get the path to the database directory of the install.
-	 *
-	 * @param  string  $path
-	 * @return string
-	 */
-	function database_path($path = '') {
-		return app()->databasePath() . ($path ? '/' . $path : $path);
-	}
-}
-
 if (!function_exists('response')) {
 	/**
 	 * Return a new response from the application.
@@ -82,7 +70,7 @@ if (!function_exists('response')) {
 	 * @param  string  $content
 	 * @param  int     $status
 	 * @param  array   $headers
-	 * @return \Symfony\Component\HttpFoundation\Response|\Laravel\Lumen\Http\ResponseFactory
+	 * @return \Lee\Http\Response
 	 */
 	function response($content = '', $status = 200, array $headers = []) {
 		return new \Lee\Http\Response($content, $status, $headers);
@@ -111,6 +99,37 @@ if (!function_exists('route')) {
 	 * @return string
 	 */
 	function route($name, $params = []) {
-		$this->request->urlFor($name, $params);
+		app()->request()->urlFor($name, $params);
 	}
 }
+
+if (!function_exists('is_cli')) {
+	function is_cli() {
+		return app()->runningInConsole();
+	}
+}
+
+if (!function_exists('is_ajax')) {
+	function is_ajax() {
+		return app()->request()->isAjax();
+	}
+}
+
+if (!function_exists('cookie')) {
+	function cookie($key, $value = null, $options = []) {
+		if (func_num_args() == 1) {
+			return app()->cookie()->get($key);
+		} else {
+			if ($value === null) {
+				return app()->cookie()->remove($key, $options);
+			}
+			$options['value'] = $value;
+			return app()->cookie()->set($key, $options);
+		}
+	}
+}
+
+app()->hook('lee.after', function() {
+	app()->log()->save();
+});
+

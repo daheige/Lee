@@ -40,69 +40,6 @@ class Response {
 	protected $length;
 
 	/**
-	 * @var array HTTP response codes and messages
-	 */
-	protected static $messages = [
-		//Informational 1xx
-		100 => '100 Continue',
-		101 => '101 Switching Protocols',
-		//Successful 2xx
-		200 => '200 OK',
-		201 => '201 Created',
-		202 => '202 Accepted',
-		203 => '203 Non-Authoritative Information',
-		204 => '204 No Content',
-		205 => '205 Reset Content',
-		206 => '206 Partial Content',
-		226 => '226 IM Used',
-		//Redirection 3xx
-		300 => '300 Multiple Choices',
-		301 => '301 Moved Permanently',
-		302 => '302 Found',
-		303 => '303 See Other',
-		304 => '304 Not Modified',
-		305 => '305 Use Proxy',
-		306 => '306 (Unused)',
-		307 => '307 Temporary Redirect',
-		//Client Error 4xx
-		400 => '400 Bad Request',
-		401 => '401 Unauthorized',
-		402 => '402 Payment Required',
-		403 => '403 Forbidden',
-		404 => '404 Not Found',
-		405 => '405 Method Not Allowed',
-		406 => '406 Not Acceptable',
-		407 => '407 Proxy Authentication Required',
-		408 => '408 Request Timeout',
-		409 => '409 Conflict',
-		410 => '410 Gone',
-		411 => '411 Length Required',
-		412 => '412 Precondition Failed',
-		413 => '413 Request Entity Too Large',
-		414 => '414 Request-URI Too Long',
-		415 => '415 Unsupported Media Type',
-		416 => '416 Requested Range Not Satisfiable',
-		417 => '417 Expectation Failed',
-		418 => '418 I\'m a teapot',
-		422 => '422 Unprocessable Entity',
-		423 => '423 Locked',
-		426 => '426 Upgrade Required',
-		428 => '428 Precondition Required',
-		429 => '429 Too Many Requests',
-		431 => '431 Request Header Fields Too Large',
-		//Server Error 5xx
-		500 => '500 Internal Server Error',
-		501 => '501 Not Implemented',
-		502 => '502 Bad Gateway',
-		503 => '503 Service Unavailable',
-		504 => '504 Gateway Timeout',
-		505 => '505 HTTP Version Not Supported',
-		506 => '506 Variant Also Negotiates',
-		510 => '510 Not Extended',
-		511 => '511 Network Authentication Required',
-	];
-
-	/**
 	 * Constructor
 	 * @param string                   $body   The HTTP response body
 	 * @param int                      $status The HTTP response status
@@ -111,9 +48,8 @@ class Response {
 	public function __construct($body = '', $status = 200, $headers = []) {
 		$this->app = app();
 		$this->setStatus($status);
-		$this->headers = new \Lee\Http\Headers(['Content-Type' => 'text/html']);
+		$this->headers = new \Lee\Http\Headers(['Content-Type' => 'text/html', 'X-Powered-By' => $this->app->version()]);
 		$this->headers->replace($headers);
-		$this->cookies = new \Lee\Http\Cookies();
 		$this->write($body);
 	}
 
@@ -252,9 +188,6 @@ class Response {
         //Fetch status, header, and body
         list($status, $headers, $body) = $this->finalize();
 
-        // Serialize cookies (with optional encryption)
-        \Lee\Http\Util::serializeCookies($headers, $this->cookies, $this->app->config('cookies'));
-
         //Send headers
         if (headers_sent() === false) {
             //Send status
@@ -274,55 +207,10 @@ class Response {
         }
 
         //Send body, but only if it isn't a HEAD request
-        if (!$this->app->request->isHead()) {
+        if (!$this->app->request()->isHead()) {
             echo $body;
         }
     }
-
-	/**
-	 * DEPRECATION WARNING! Access `cookies` property directly.
-	 *
-	 * Set cookie
-	 *
-	 * Instead of using PHP's `setcookie()` function, Lee manually constructs the HTTP `Set-Cookie`
-	 * header on its own and delegates this responsibility to the `Lee_Http_Util` class. This
-	 * response's header is passed by reference to the utility class and is directly modified. By not
-	 * relying on PHP's native implementation, Lee allows middleware the opportunity to massage or
-	 * analyze the raw header before the response is ultimately delivered to the HTTP client.
-	 *
-	 * @param string        $name    The name of the cookie
-	 * @param string|array  $value   If string, the value of cookie; if array, properties for
-	 *                               cookie including: value, expire, path, domain, secure, httponly
-	 */
-	public function setCookie($name, $value) {
-        // Util::setCookieHeader($this->header, $name, $value);
-		$this->cookies->set($name, $value);
-	}
-
-	/**
-	 * DEPRECATION WARNING! Access `cookies` property directly.
-	 *
-	 * Delete cookie
-	 *
-	 * Instead of using PHP's `setcookie()` function, Lee manually constructs the HTTP `Set-Cookie`
-	 * header on its own and delegates this responsibility to the `Lee_Http_Util` class. This
-	 * response's header is passed by reference to the utility class and is directly modified. By not
-	 * relying on PHP's native implementation, Lee allows middleware the opportunity to massage or
-	 * analyze the raw header before the response is ultimately delivered to the HTTP client.
-	 *
-	 * This method will set a cookie with the given name that has an expiration time in the past; this will
-	 * prompt the HTTP client to invalidate and remove the client-side cookie. Optionally, you may
-	 * also pass a key/value array as the second argument. If the "domain" key is present in this
-	 * array, only the Cookie with the given name AND domain will be removed. The invalidating cookie
-	 * sent with this response will adopt all properties of the second argument.
-	 *
-	 * @param string $name     The name of the cookie
-	 * @param array  $settings Properties for cookie including: value, expire, path, domain, secure, httponly
-	 */
-	public function deleteCookie($name, $settings = []) {
-		$this->cookies->remove($name, $settings);
-		// Util::deleteCookieHeader($this->header, $name, $value);
-	}
 
 	/**
 	 * Redirect
@@ -430,4 +318,67 @@ class Response {
 			return null;
 		}
 	}
+
+	/**
+	 * @var array HTTP response codes and messages
+	 */
+	protected static $messages = [
+		//Informational 1xx
+		100 => '100 Continue',
+		101 => '101 Switching Protocols',
+		//Successful 2xx
+		200 => '200 OK',
+		201 => '201 Created',
+		202 => '202 Accepted',
+		203 => '203 Non-Authoritative Information',
+		204 => '204 No Content',
+		205 => '205 Reset Content',
+		206 => '206 Partial Content',
+		226 => '226 IM Used',
+		//Redirection 3xx
+		300 => '300 Multiple Choices',
+		301 => '301 Moved Permanently',
+		302 => '302 Found',
+		303 => '303 See Other',
+		304 => '304 Not Modified',
+		305 => '305 Use Proxy',
+		306 => '306 (Unused)',
+		307 => '307 Temporary Redirect',
+		//Client Error 4xx
+		400 => '400 Bad Request',
+		401 => '401 Unauthorized',
+		402 => '402 Payment Required',
+		403 => '403 Forbidden',
+		404 => '404 Not Found',
+		405 => '405 Method Not Allowed',
+		406 => '406 Not Acceptable',
+		407 => '407 Proxy Authentication Required',
+		408 => '408 Request Timeout',
+		409 => '409 Conflict',
+		410 => '410 Gone',
+		411 => '411 Length Required',
+		412 => '412 Precondition Failed',
+		413 => '413 Request Entity Too Large',
+		414 => '414 Request-URI Too Long',
+		415 => '415 Unsupported Media Type',
+		416 => '416 Requested Range Not Satisfiable',
+		417 => '417 Expectation Failed',
+		418 => '418 I\'m a teapot',
+		422 => '422 Unprocessable Entity',
+		423 => '423 Locked',
+		426 => '426 Upgrade Required',
+		428 => '428 Precondition Required',
+		429 => '429 Too Many Requests',
+		431 => '431 Request Header Fields Too Large',
+		//Server Error 5xx
+		500 => '500 Internal Server Error',
+		501 => '501 Not Implemented',
+		502 => '502 Bad Gateway',
+		503 => '503 Service Unavailable',
+		504 => '504 Gateway Timeout',
+		505 => '505 HTTP Version Not Supported',
+		506 => '506 Variant Also Negotiates',
+		510 => '510 Not Extended',
+		511 => '511 Network Authentication Required',
+	];
 }

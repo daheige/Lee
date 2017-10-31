@@ -127,7 +127,7 @@ class Environment implements \ArrayAccess, \IteratorAggregate {
             $env['PATH_INFO'] = '/' . ltrim($env['PATH_INFO'], '/');                    // <-- Ensure leading slash
 
             // 去除URL后缀
-            $url_suffix = \Lee\Application::getInstance()->config('url_html_suffix');
+            $url_suffix = app()->config('url_html_suffix');
             if ($url_suffix) {
                 $env['PATH_INFO'] = preg_replace('/\.('.trim($url_suffix,'.').')$/i', '', $env['PATH_INFO']);
             }

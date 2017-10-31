@@ -1,19 +1,15 @@
 <?php
+/**
+ * 异常处理
+ * @package lee
+ * @author  逍遥·李志亮
+ * @since   1.0.0
+ */
 namespace Lee\Traits;
 
 use ErrorException;
 use Exception;
 use Lee\Exception\FatalErrorException;
-
-/**
- * 异常处理
- *
- * @package lee
- *
- * @author  逍遥·李志亮
- *
- * @since   1.0.0
- */
 
 trait RegistersExceptionHandlers {
 
@@ -22,10 +18,10 @@ trait RegistersExceptionHandlers {
 	 *
 	 * @return void
 	 */
-	public function registerErrorHandling() {
+	public function registerErrorHandler() {
 		// 设定Error 和 Fatal Error处理
-		error_reporting(-1);
-    	ini_set('display_errors', 0);
+		/*error_reporting(-1);
+   		ini_set('display_errors', 0);*/
 		set_error_handler([$this, 'handleError']);
 		set_exception_handler([$this, 'handleException']);
 		register_shutdown_function([$this, 'handleShutdown']);
@@ -94,7 +90,7 @@ trait RegistersExceptionHandlers {
 		$log_sring .= "\n File: " . $e->getFile();
 		$log_sring .= "\n Line: " . $e->getLine();
 		$log_sring .= $e->getTraceAsString();
-		$this->log()->error($log_sring);
+		$this->log()->error($log_sring, $this->storagePath('log') . '/' . date("Y-m-d") . ".log");
 		$this->applyHook('lee.after');
 	}
 

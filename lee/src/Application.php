@@ -13,6 +13,15 @@
  */
 namespace Lee;
 
+use \Lee\Environment;
+use \Lee\Http\Cookies;
+use \Lee\Http\Request;
+use \Lee\Http\Response;
+use \Lee\Log\Log;
+use \Lee\Route\Router;
+use \Lee\Session\Session;
+use \Lee\View;
+
 /**
  * Lee
  * @package  Lee
@@ -24,11 +33,15 @@ namespace Lee;
 class Application {
 	use \Lee\Traits\RegistersExceptionHandlers;
 	use \Lee\Traits\Hook;
+	use \Lee\Traits\Header;
+	use \Lee\Traits\Flash;
+	use \Lee\Traits\Config;
+	use \Lee\Traits\Database;
 
 	/**
 	 * @const string
 	 */
-	const VERSION = '1.0.0';
+	const VERSION = 'Lee (1.0.0) (Lee Framework)';
 
 	/**
 	 * @var \Lee\Helper\Set
@@ -96,56 +109,72 @@ class Application {
 	 */
 	public function __construct($base_path) {
 		$this->basePath = $base_path;
-
-        // Setup IoC container
+		// Make default if first instance
+		if (is_null(static::getInstance())) {
+			$this->setName('default');
+		}
+		// Setup IoC container
 		$this->container             = new \Lee\Helper\Set();
-		$this->container['settings'] = $this->getDefaultSettings();
-        // load system config
-        $this->configure('app');
+		$this->container['settings'] = [];
 
-        $this->registerAliases();
-		// Default log
-		$this->container->singleton('log', function ($c) {
-			return new \Log($c['settings']['LOG']);
-		});
-		// Default environment
-		$this->container->singleton('environment', function ($c) {
-			return \Lee\Environment::getInstance();
-		});
-		// Default request
-		$this->container->singleton('request', function ($c) {
-			return new \Request($c['environment']);
-		});
+		// 载入helper
+		require __DIR__ . '/helpers.php';
 
-		// Default response
-		$this->container->singleton('response', function ($c) {
-			return new \Response();
-		});
+		// load system config
+		$this->configure('app', false);
 
-		// Default router
-		$this->container->singleton('router', function ($c) {
-			return new \Router();
-		});
+		$this->registerAliases();
+		$this->bootstrapContainer();
+		$this->bootstrapDatabase();
 
 		// Define default middleware stack
 		$this->middleware = [$this];
 		$this->middleware(new \Lee\Middleware\Flash());
 		$this->middleware(new \Lee\Middleware\MethodOverride());
 
-		// Make default if first instance
-		if (is_null(static::getInstance())) {
-			$this->setName('default');
-		}
+		$this->registerErrorHandler();
+	}
 
-		$this->registerErrorHandling();
-
-		// 载入helper
-		require __DIR__ . '/helpers.php';
+	public function bootstrapContainer() {
+		// Default log
+		$this->container->singleton('log', function ($c) {
+			return new Log();
+		});
+		// Default environment
+		$this->container->singleton('environment', function ($c) {
+			return Environment::getInstance();
+		});
+		// Default request
+		$this->container->singleton('request', function ($c) {
+			return new Request($c['environment']);
+		});
+		// Default response
+		$this->container->singleton('response', function ($c) {
+			return new Response();
+		});
+		// Default router
+		$this->container->singleton('router', function ($c) {
+			return new Router();
+		});
+		// Default router
+		$this->container->singleton('cookie', function ($c) {
+			return new Cookies($config = $c['settings']['cookies']);
+		});
+		// Session
+		$this->container->singleton('session', function ($c) {
+			$config     = $c['settings']['session'];
+			$config['cookie_encrypt'] = $c['settings']['cookies']['encrypt'];
+			$config['session_id'] = cookie($config['name']);
+			return new Session($config);
+		});
+		// View
+		$this->container->singleton('view', function ($c) {
+			return new View();
+		});
 	}
 
 	/**
-	 * 添加别名映射
-	 * @return [type] [description]
+	 * alias map
 	 */
 	public function registerAliases() {
 		$aliases = $this->config('aliases');
@@ -154,43 +183,6 @@ class Application {
 				class_alias($value, $key);
 			}
 		}
-	}
-
-	/**
-	 * Get default application settings
-	 * @return array
-	 */
-	public function getDefaultSettings() {
-		return array_change_key_case([
-			// Application
-			'mode'                  => 'development',
-			// Debugging
-			'debug'                 => true,
-			// Logging
-			'log'                   => [
-				'type'     => 'File',
-				'log_path' => $this->storagePath(),
-			],
-			// View
-			'templates.path'        => './templates',
-			// Cookies
-			'cookies'               => [
-				'encrypt'     => false,
-				'expires'     => 0,
-				'path'        => '/',
-				'domain'      => null,
-				'secure'      => false,
-				'httponly'    => false,
-				// Encryption
-				'secret_key'  => 'CHANGE_ME',
-				'cipher'      => MCRYPT_RIJNDAEL_256,
-				'cipher_mode' => MCRYPT_MODE_CBC,
-			],
-			// HTTP
-			'http.version'          => '1.1',
-			// Routing
-			'routes.case_sensitive' => true,
-		], CASE_UPPER);
 	}
 
 	/**
@@ -217,84 +209,6 @@ class Application {
 	 */
 	public function getName() {
 		return $this->name;
-	}
-
-	/**
-	 * Load a configuration file into the application.
-	 *
-	 * @param  string  $name
-	 * @return void
-	 */
-	public function configure($name) {
-		if (isset($this->loadedConfigurations[$name])) {
-			return;
-		}
-		$this->loadedConfigurations[$name] = true;
-		$default_config_path = realpath(__DIR__ . '/../config/' . $name . '.php');
-		if (file_exists($default_config_path)) {
-			$this->config(require $default_config_path);
-		}
-		$self_config_path = $this->basePath('config') . '/' . $name . '.php';
-		if (file_exists($self_config_path)) {
-			$this->config(require $self_config_path);
-		}
-		if (defined('APP_ENV')) {
-			if (file_exists($custom_config_path = $this->basePath('config') . '/' . APP_ENV . '/' . $name . '.php')) {
-				$this->config(require $custom_config_path);
-			}
-		}
-	}
-
-	/**
-	 * Configure Lee Settings
-	 *
-	 * This method defines application settings and acts as a setter and a getter.
-	 *
-	 * If only one argument is specified and that argument is a string, the value
-	 * of the setting identified by the first argument will be returned, or NULL if
-	 * that setting does not exist.
-	 *
-	 * If only one argument is specified and that argument is an associative array,
-	 * the array will be merged into the existing application settings.
-	 *
-	 * If two arguments are provided, the first argument is the name of the setting
-	 * to be created or updated, and the second argument is the setting value.
-	 *
-	 * @param  string|array $name  If a string, the name of the setting to set or retrieve. Else an associated array of setting names and values
-	 * @param  mixed        $value If name is a string, the value of the setting identified by $name
-	 * @return mixed        The value of a setting if only one argument is a string
-	 */
-	public function config($name, $value = false) {
-		$c = $this->container;
-		if (is_array($name)) {
-			if (true === $value) {
-				$c['settings'] = array_replace_recursive($c['settings'], array_change_key_case($name, CASE_UPPER));
-			} else {
-				$c['settings'] = array_merge($c['settings'], array_change_key_case($name, CASE_UPPER));
-			}
-		} elseif (func_num_args() === 1) {
-			if (!strpos($name, '.')) {
-				$name = strtoupper($name);
-				return isset($c['settings'][$name]) ? $c['settings'][$name] : null;
-			}
-			// 二维数组设置和获取支持
-			$name    = explode('.', $name);
-			$name[0] = strtoupper($name[0]);
-			return isset($c['settings'][$name[0]][$name[1]]) ? $c['settings'][$name[0]][$name[1]] : null;
-		} else {
-			$settings = $c['settings'];
-			if (!strpos($name, '.')) {
-				$name            = strtoupper($name);
-				$settings[$name] = $value;
-			} else {
-				// 二维数组设置和获取支持
-				$name                         = explode('.', $name);
-				$name[0]                      = strtoupper($name[0]);
-				$settings[$name[0]][$name[1]] = $value;
-			}
-			$c['settings'] = $settings;
-		}
-		return null;
 	}
 
 	/**
@@ -428,193 +342,37 @@ class Application {
 		return $this->router;
 	}
 
-    /**
-     * Get the version number of the application.
-     *
-     * @return string
-     */
-    public function version() {
-        return 'Lee (1.0.0) (Lee Framework)';
-    }
-
-	/************************************************************************/
-	/* HTTP Caching *********************************************************/
-	/************************************************************************/
-
 	/**
-	 * Set Last-Modified HTTP Response Header
-	 *
-	 * Set the HTTP 'Last-Modified' header and stop if a conditional
-	 * GET request's `If-Modified-Since` header matches the last modified time
-	 * of the resource. The `time` argument is a UNIX timestamp integer value.
-	 * When the current request includes an 'If-Modified-Since' header that
-	 * matches the specified last modified time, the application will stop
-	 * and send a '304 Not Modified' response to the client.
-	 *
-	 * @param  int                       $time The last modified UNIX timestamp
-	 * @throws \InvalidArgumentException If provided timestamp is not an integer
+	 * Get the Session object
+	 * @return \Lee\Session\Session
 	 */
-	public function lastModified($time) {
-		if (is_integer($time)) {
-			$this->response->headers->set('Last-Modified', gmdate('D, d M Y H:i:s T', $time));
-			if ($time === strtotime($this->request->headers->get('IF_MODIFIED_SINCE'))) {
-				$this->halt(304);
-			}
-		} else {
-			throw new \InvalidArgumentException('Lee::lastModified only accepts an integer UNIX timestamp value.');
-		}
+	public function session() {
+		return $this->session;
 	}
 
 	/**
-	 * Set ETag HTTP Response Header
-	 *
-	 * Set the etag header and stop if the conditional GET request matches.
-	 * The `value` argument is a unique identifier for the current resource.
-	 * The `type` argument indicates whether the etag should be used as a strong or
-	 * weak cache validator.
-	 *
-	 * When the current request includes an 'If-None-Match' header with
-	 * a matching etag, execution is immediately stopped. If the request
-	 * method is GET or HEAD, a '304 Not Modified' response is sent.
-	 *
-	 * @param  string                    $value The etag value
-	 * @param  string                    $type  The type of etag to create; either "strong" or "weak"
-	 * @throws \InvalidArgumentException If provided type is invalid
+	 * Get the cookie object
+	 * @return \Lee\Http\Cookies
 	 */
-	public function etag($value, $type = 'strong') {
-		//Ensure type is correct
-		if (!in_array($type, ['strong', 'weak'])) {
-			throw new \InvalidArgumentException('Invalid Lee::etag type. Expected "strong" or "weak".');
-		}
-
-		//Set etag value
-		$value = '"' . $value . '"';
-		if ($type === 'weak') {
-			$value = 'W/' . $value;
-		}
-		$this->response['ETag'] = $value;
-
-		//Check conditional GET
-		if ($etagsHeader = $this->request->headers->get('IF_NONE_MATCH')) {
-			$etags = preg_split('@\s*,\s*@', $etagsHeader);
-			if (in_array($value, $etags) || in_array('*', $etags)) {
-				$this->halt(304);
-			}
-		}
+	public function cookie() {
+		return $this->cookie;
 	}
 
 	/**
-	 * Set Expires HTTP response header
-	 *
-	 * The `Expires` header tells the HTTP client the time at which
-	 * the current resource should be considered stale. At that time the HTTP
-	 * client will send a conditional GET request to the server; the server
-	 * may return a 200 OK if the resource has changed, else a 304 Not Modified
-	 * if the resource has not changed. The `Expires` header should be used in
-	 * conjunction with the `etag()` or `lastModified()` methods above.
-	 *
-	 *                              If int, a UNIX timestamp;
-	 * @param string|int $time If string, a time to be parsed by `strtotime()`;
+	 * Get the View object
+	 * @return \Lee\View
 	 */
-	public function expires($time) {
-		if (is_string($time)) {
-			$time = strtotime($time);
-		}
-		$this->response->headers->set('Expires', gmdate('D, d M Y H:i:s T', $time));
-	}
-
-	/************************************************************************/
-	/* HTTP Cookies *********************************************************/
-	/************************************************************************/
-
-	/**
-	 * Set HTTP cookie to be sent with the HTTP response
-	 *
-	 *                                  If integer, should be UNIX timestamp;
-	 *                                  If string, converted to UNIX timestamp with `strtotime`;
-	 *                              HTTPS connection to/from the client
-	 * @param string     $name     The cookie name
-	 * @param string     $value    The cookie value
-	 * @param int|string $time     The duration of the cookie;
-	 * @param string     $path     The path on the server in which the cookie will be available on
-	 * @param string     $domain   The domain that the cookie is available to
-	 * @param bool       $secure   Indicates that the cookie should only be transmitted over a secure
-	 * @param bool       $httponly When TRUE the cookie will be made accessible only through the HTTP protocol
-	 */
-	public function setCookie($name, $value, $options = []) {
-		$options = array_merge($this->config('cookies'), $options);
-		$settings = [
-			'value'    => $value,
-			'expires'  => $options['expires'],
-			'path'     => $options['path'],
-			'domain'   => $options['domain'],
-			'secure'   => $options['secure'],
-			'httponly' => $options['httponly'],
-		];
-		$this->response->cookies->set($name, $settings);
+	public function view() {
+		return $this->view;
 	}
 
 	/**
-	 * Get value of HTTP cookie from the current HTTP request
+	 * Get the version number of the application.
 	 *
-	 * Return the value of a cookie from the current HTTP request,
-	 * or return NULL if cookie does not exist. Cookies created during
-	 * the current request will not be available until the next request.
-	 *
-	 * @param  string        $name
-	 * @param  bool          $deleteIfInvalid
-	 * @return string|null
+	 * @return string
 	 */
-	public function getCookie($name, $deleteIfInvalid = true) {
-		// Get cookie value
-		$value = $this->request->cookies->get($name);
-		var_dump($value);
-		// Decode if encrypted
-		if ($this->config('cookies.encrypt')) {
-			$value = \Lee\Http\Util::decodeSecureCookie(
-				$value,
-				$this->config('cookies.secret_key'),
-				$this->config('cookies.cipher'),
-				$this->config('cookies.cipher_mode')
-			);
-			var_dump($value);
-			if ($value === false && $deleteIfInvalid) {
-				$this->deleteCookie($name);
-			}
-		}
-
-		/**
-		 * transform $value to @return doc requirement.
-		 * \Lee\Http\Util::decodeSecureCookie -  is able
-		 * to return false and we have to cast it to null.
-		 */
-		return $value === false ? null : $value;
-	}
-
-	/**
-	 * Delete HTTP cookie (encrypted or unencrypted)
-	 *
-	 * Remove a Cookie from the client. This method will overwrite an existing Cookie
-	 * with a new, empty, auto-expiring Cookie. This method's arguments must match
-	 * the original Cookie's respective arguments for the original Cookie to be
-	 * removed. If any of this method's arguments are omitted or set to NULL, the
-	 * default Cookie setting values (set during Lee::init) will be used instead.
-	 *
-	 *                              HTTPS connection from the client
-	 * @param string $name     The cookie name
-	 * @param string $path     The path on the server in which the cookie will be available on
-	 * @param string $domain   The domain that the cookie is available to
-	 * @param bool   $secure   Indicates that the cookie should only be transmitted over a secure
-	 * @param bool   $httponly When TRUE the cookie will be made accessible only through the HTTP protocol
-	 */
-	public function deleteCookie($name, $path = null, $domain = null, $secure = null, $httponly = null) {
-		$settings = [
-			'domain'   => is_null($domain) ? $this->config('cookies.domain') : $domain,
-			'path'     => is_null($path) ? $this->config('cookies.path') : $path,
-			'secure'   => is_null($secure) ? $this->config('cookies.secure') : $secure,
-			'httponly' => is_null($httponly) ? $this->config('cookies.httponly') : $httponly,
-		];
-		$this->response->cookies->remove($name, $settings);
+	public function version() {
+		return self::VERSION;
 	}
 
 	/************************************************************************/
@@ -633,15 +391,6 @@ class Application {
 	 */
 	public function root() {
 		return rtrim($_SERVER['DOCUMENT_ROOT'], '/') . rtrim($this->request->getRootUri(), '/') . '/';
-	}
-
-	/**
-	 * Clean current output buffer
-	 */
-	protected function cleanBuffer() {
-		if (ob_get_level() !== 0) {
-			ob_clean();
-		}
 	}
 
 	/**
@@ -687,6 +436,15 @@ class Application {
 	public function pass() {
 		$this->cleanBuffer();
 		throw new \Lee\Exception\Pass();
+	}
+
+	/**
+	 * Clean current output buffer
+	 */
+	protected function cleanBuffer() {
+		if (ob_get_level() !== 0) {
+			ob_clean();
+		}
 	}
 
 	/**
@@ -745,50 +503,6 @@ class Application {
 		$this->redirect($this->urlFor($route, $params), $status);
 	}
 
-	/************************************************************************/
-	/* Flash Messages *******************************************************/
-	/************************************************************************/
-
-	/**
-	 * Set flash message for subsequent request
-	 * @param string $key
-	 * @param mixed  $value
-	 */
-	public function flash($key, $value) {
-		if (isset($this->environment['lee.flash'])) {
-			$this->environment['lee.flash']->set($key, $value);
-		}
-	}
-
-	/**
-	 * Set flash message for current request
-	 * @param string $key
-	 * @param mixed  $value
-	 */
-	public function flashNow($key, $value) {
-		if (isset($this->environment['lee.flash'])) {
-			$this->environment['lee.flash']->now($key, $value);
-		}
-	}
-
-	/**
-	 * Keep flash messages from previous request for subsequent request
-	 */
-	public function flashKeep() {
-		if (isset($this->environment['lee.flash'])) {
-			$this->environment['lee.flash']->keep();
-		}
-	}
-
-	/**
-	 * Get all flash messages
-	 */
-	public function flashData() {
-		if (isset($this->environment['lee.flash'])) {
-			return $this->environment['lee.flash']->getMessages();
-		}
-	}
-
 	/****************************************************************************/
 	/* Middleware ***************************************************************/
 	/****************************************************************************/
@@ -823,9 +537,15 @@ class Application {
 	 * are returned to the HTTP client.
 	 */
 	public function run() {
-		//Invoke middleware and application stack
-		$this->middleware[0]->call();
+		$this->applyHook('lee.before');
+		// start session
+		if (!$this->runningInConsole()) {
+			$this->session()->start();
+			// session_start();
+		}
 
+		// Invoke middleware and application stack
+		$this->middleware[0]->call();
 		$this->response()->send();
 		$this->applyHook('lee.after');
 	}
@@ -837,11 +557,10 @@ class Application {
 	 */
 	public function call() {
 		try {
-			/*if (isset($this->environment['lee.flash'])) {
-				$this->view()->setData('flash', $this->environment['lee.flash']);
-			}*/
-			$this->applyHook('lee.before');
-			$this->applyHook('lee.before.router');
+			if (isset($this->environment['lee.flash'])) {
+				$this->view()->set('flash', $this->environment['lee.flash']);
+			}
+			$this->applyHook('lee.before.router', $this->router);
 			$dispatched    = false;
 			$matchedRoutes = $this->router->getMatchedRoutes($this->request->getMethod(), $this->request->getResourceUri(), $this->request->getHost());
 			foreach ($matchedRoutes as $route) {
@@ -856,13 +575,13 @@ class Application {
 					continue;
 				}
 			}
+			$this->applyHook('lee.after.router', $this);
 			if (!$dispatched) {
 				$this->notFound();
 			}
-			$this->applyHook('lee.after.router');
 		} catch (\Lee\Exception\Stop $e) {
-            $this->response()->write(ob_get_clean());
-        }
+			$this->response()->write(ob_get_clean());
+		}
 	}
 
 	public function __get($name) {

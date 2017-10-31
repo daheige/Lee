@@ -141,34 +141,6 @@ class Util {
     }
 
     /**
-     * Serialize Response cookies into raw HTTP header
-     * @param \Lee\Http\Headers $headers The Response headers
-     * @param \Lee\Http\Cookies $cookies The Response cookies
-     * @param array              $config  The Lee app cookies settings
-     */
-    public static function serializeCookies(\Lee\Http\Headers &$headers, \Lee\Http\Cookies $cookies, array $config) {
-        foreach ($cookies as $name => $settings) {
-            if ($config['encrypt'] && (!isset($settings['encrypt']) || $settings['encrypt'] !== false)) {
-                if (is_string($settings['expires'])) {
-                    $expires = strtotime($settings['expires']);
-                } else {
-                    $expires = (int) $settings['expires'];
-                }
-                $settings['value'] = static::encodeSecureCookie(
-                    $settings['value'],
-                    $expires,
-                    $config['secret_key'],
-                    $config['cipher'],
-                    $config['cipher_mode']
-                );
-                static::setCookieHeader($headers, $name, $settings);
-            } else {
-                static::setCookieHeader($headers, $name, $settings);
-            }
-        }
-    }
-
-    /**
      * Encode secure cookie value
      *
      * This method will create the secure value of an HTTP cookie. The
@@ -214,10 +186,14 @@ class Util {
      * @param  int            $mode      The algorithm mode to use for encryption
      * @return bool|string
      */
-    public static function decodeSecureCookie($value, $secret, $algorithm, $mode) {
-        if ($value) {
-            $value = explode('|', $value);
-            if (count($value) === 3 && ((int) $value[0] === 0 || (int) $value[0] > time())) {
+    public static function decodeSecureCookie($val, $secret, $algorithm, $mode) {
+        if ($val) {
+            $value = explode('|', $val);
+            // 非加密Cookie
+            if (count($value) !== 3) {
+                return $val;
+            }
+            if (((int) $value[0] === 0 || (int) $value[0] > time())) {
                 $key  = hash_hmac('sha1', $value[0], $secret);
                 $iv   = self::getIv($value[0], $secret);
                 $data = self::decrypt(
@@ -240,106 +216,20 @@ class Util {
     }
 
     /**
-     * Set HTTP cookie header
+     * Generate a random IV
      *
-     * This method will construct and set the HTTP `Set-Cookie` header. Lee
-     * uses this method instead of PHP's native `setcookie` method. This allows
-     * more control of the HTTP header irrespective of the native implementation's
-     * dependency on PHP versions.
+     * This method will generate a non-predictable IV for use with
+     * the cookie encryption
      *
-     * This method accepts the Lee_Http_Headers object by reference as its
-     * first argument; this method directly modifies this object instead of
-     * returning a value.
-     *
-     * @param array  $header
-     * @param string $name
-     * @param string $value
+     * @param  int    $expires The UNIX timestamp at which this cookie will expire
+     * @param  string $secret  The secret key used to hash the cookie value
+     * @return string Hash
      */
-    public static function setCookieHeader(&$header, $name, $value) {
-        //Build cookie header
-        if (is_array($value)) {
-            $domain   = '';
-            $path     = '';
-            $expires  = '';
-            $secure   = '';
-            $httponly = '';
-            if (isset($value['domain']) && $value['domain']) {
-                $domain = '; domain=' . $value['domain'];
-            }
-            if (isset($value['path']) && $value['path']) {
-                $path = '; path=' . $value['path'];
-            }
-            if (isset($value['expires'])) {
-                if (is_string($value['expires'])) {
-                    $timestamp = strtotime($value['expires']);
-                } else {
-                    $timestamp = (int) $value['expires'];
-                }
-                if ($timestamp !== 0) {
-                    $expires = '; expires=' . gmdate('D, d-M-Y H:i:s e', $timestamp);
-                }
-            }
-            if (isset($value['secure']) && $value['secure']) {
-                $secure = '; secure';
-            }
-            if (isset($value['httponly']) && $value['httponly']) {
-                $httponly = '; HttpOnly';
-            }
-            $cookie = sprintf('%s=%s%s', urlencode($name), urlencode((string) $value['value']), $domain . $path . $expires . $secure . $httponly);
-        } else {
-            $cookie = sprintf('%s=%s', urlencode($name), urlencode((string) $value));
-        }
+    private static function getIv($expires, $secret) {
+        $data1 = hash_hmac('sha1', 'a' . $expires . 'b', $secret);
+        $data2 = hash_hmac('sha1', 'z' . $expires . 'y', $secret);
 
-        //Set cookie header
-        if (!isset($header['Set-Cookie']) || $header['Set-Cookie'] === '') {
-            $header['Set-Cookie'] = $cookie;
-        } else {
-            $header['Set-Cookie'] = implode("\n", [$header['Set-Cookie'], $cookie]);
-        }
-    }
-
-    /**
-     * Delete HTTP cookie header
-     *
-     * This method will construct and set the HTTP `Set-Cookie` header to invalidate
-     * a client-side HTTP cookie. If a cookie with the same name (and, optionally, domain)
-     * is already set in the HTTP response, it will also be removed. Lee uses this method
-     * instead of PHP's native `setcookie` method. This allows more control of the HTTP header
-     * irrespective of PHP's native implementation's dependency on PHP versions.
-     *
-     * This method accepts the Lee_Http_Headers object by reference as its
-     * first argument; this method directly modifies this object instead of
-     * returning a value.
-     *
-     * @param array  $header
-     * @param string $name
-     * @param array  $value
-     */
-    public static function deleteCookieHeader(&$header, $name, $value = []) {
-        //Remove affected cookies from current response header
-        $cookiesOld = [];
-        $cookiesNew = [];
-        if (isset($header['Set-Cookie'])) {
-            $cookiesOld = explode("\n", $header['Set-Cookie']);
-        }
-        foreach ($cookiesOld as $c) {
-            if (isset($value['domain']) && $value['domain']) {
-                $regex = sprintf('@%s=.*domain=%s@', urlencode($name), preg_quote($value['domain']));
-            } else {
-                $regex = sprintf('@%s=@', urlencode($name));
-            }
-            if (preg_match($regex, $c) === 0) {
-                $cookiesNew[] = $c;
-            }
-        }
-        if ($cookiesNew) {
-            $header['Set-Cookie'] = implode("\n", $cookiesNew);
-        } else {
-            unset($header['Set-Cookie']);
-        }
-
-        //Set invalidating cookie to clear client-side cookie
-        self::setCookieHeader($header, $name, array_merge(['value' => '', 'path' => null, 'domain' => null, 'expires' => time() - 100], $value));
+        return pack("h*", $data1 . $data2);
     }
 
     /**
@@ -369,20 +259,5 @@ class Util {
         return $cookies;
     }
 
-    /**
-     * Generate a random IV
-     *
-     * This method will generate a non-predictable IV for use with
-     * the cookie encryption
-     *
-     * @param  int    $expires The UNIX timestamp at which this cookie will expire
-     * @param  string $secret  The secret key used to hash the cookie value
-     * @return string Hash
-     */
-    private static function getIv($expires, $secret) {
-        $data1 = hash_hmac('sha1', 'a' . $expires . 'b', $secret);
-        $data2 = hash_hmac('sha1', 'z' . $expires . 'y', $secret);
 
-        return pack("h*", $data1 . $data2);
-    }
 }

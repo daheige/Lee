@@ -21,7 +21,7 @@ class Set implements \ArrayAccess, \Countable, \IteratorAggregate {
      *
      * Used to transform data key into the necessary
      * key format for this set. Used in subclasses
-     * like \Slim\Http\Headers.
+     * like \Lee\Http\Headers.
      *
      * @param  string $key The data key
      * @return mixed  The transformed/normalized data key

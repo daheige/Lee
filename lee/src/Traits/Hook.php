@@ -1,15 +1,11 @@
 <?php
-namespace Lee\Traits;
-
 /**
- * Hook
- *
+ * Hook Trait
  * @package lee
- *
  * @author  逍遥·李志亮
- *
  * @since   1.0.0
  */
+namespace Lee\Traits;
 
 trait Hook {
 
@@ -21,7 +17,7 @@ trait Hook {
 	 * Assign hook
 	 * @param string $name     The hook name
 	 * @param mixed  $callable A callable object
-	 * @param int    $priority The hook priority; = high, 10 = low
+	 * @param int    $priority The hook priority; 1 = high, 10 = low
 	 */
 	public function hook($name, $callable, $priority = 10) {
 		if (!isset($this->hooks[$name])) {
