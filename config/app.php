@@ -17,6 +17,23 @@ return [
 		'cipher_mode' => MCRYPT_MODE_CBC,
 	],
 
+    // Session
+    'session'               => [
+        'hanlder' => 'Redis',
+        'name'    => 'lee_sessionid',
+        'expires' => 3600,
+        'path'    => '/',
+        'domain'  => '',
+        'options' => [
+            'host'       => '127.0.0.1',
+            'port'       => 6379,
+            'auth'       => false,
+            'prefix'     => '',
+            'timeout'    => false,
+            'persistent' => false,
+        ]
+    ],
+
 	// Routing
 	'routes'          => [
 		'case_sensitive' => true,

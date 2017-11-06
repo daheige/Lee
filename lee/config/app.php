@@ -26,6 +26,7 @@ return [
 	],
 	// Session
 	'session'               => [
+        'hanlder' => '',
 		'name'    => 'lee_sessionid',
 		'expires' => 3600,
 		'path'    => '/',

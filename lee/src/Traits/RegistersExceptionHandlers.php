@@ -20,8 +20,8 @@ trait RegistersExceptionHandlers {
 	 */
 	public function registerErrorHandler() {
 		// 设定Error 和 Fatal Error处理
-		/*error_reporting(-1);
-   		ini_set('display_errors', 0);*/
+		error_reporting(-1);
+   		ini_set('display_errors', 0);
 		set_error_handler([$this, 'handleError']);
 		set_exception_handler([$this, 'handleException']);
 		register_shutdown_function([$this, 'handleShutdown']);
