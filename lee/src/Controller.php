@@ -34,6 +34,8 @@ abstract class Controller {
 	 */
 	protected $view = null;
 
+	protected $viewPathPrefix = '';
+
 	public function __construct() {
 		$this->app  = app();
 		$this->view = $this->app->view();
@@ -51,10 +53,7 @@ abstract class Controller {
 	 * @return void
 	 */
 	protected function display($template = '', $data = null) {
-        if (empty($template)) {
-        	$current_route = $this->app->router()->getCurrentRoute();
-            $template = strtolower($current_route->getController()) . '.' . $current_route->getAction();
-        }
+		$template = empty($template) ? $this->getDefaultTemplate() : $template;
 		$this->view->display($template, $data);
 	}
 
@@ -69,11 +68,15 @@ abstract class Controller {
 	 * @return string
 	 */
 	protected function fetch($template = '', $data = null) {
-        if (empty($template)) {
-        	$current_route = $this->app->router()->getCurrentRoute();
-            $template = strtolower($current_route->getController()) . '.' . $current_route->getAction();
-        }
+		$template = empty($template) ? $this->getDefaultTemplate() : $template;
 		return $this->view->fetch($template, $data);
+	}
+
+	protected function getDefaultTemplate() {
+		// $namespace     = $current_route->getNamespace();
+		$current_route = $this->app->router()->getCurrentRoute();
+		$template      = empty($this->viewPathPrefix) ? strtolower($current_route->getController()) . '.' . $current_route->getAction() : trim($this->viewPathPrefix, '/') . '.' . strtolower($current_route->getController()) . '.' . $current_route->getAction();
+		return $template;
 	}
 
 	/**
