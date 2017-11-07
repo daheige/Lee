@@ -541,7 +541,6 @@ class Application {
 		// start session
 		if (!$this->runningInConsole()) {
 			$this->session()->start();
-			// session_start();
 		}
 
 		// Invoke middleware and application stack

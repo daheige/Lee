@@ -14,7 +14,7 @@
 namespace App\Controllers\Home;
 
 use \Lee\Controller;
-use DB;
+
 /**
 * 首页
 */

@@ -227,9 +227,9 @@ class Route {
 		if (is_string($callable) && preg_match('!^([^@]+)@([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)$!', $callable, $matches)) {
 			$class    = $matches[1];
 			$method   = $matches[2];
+			$this->setController($class);
+			$this->setAction($method);
 			$callable = function () use ($class, $method) {
-				$this->setController($class);
-				$this->setAction($method);
 				static $obj = null;
 				if ($obj === null) {
                     $class = '\\' . trim($this->namespace, '\\') . '\\' . trim($class, '\\');

@@ -129,7 +129,38 @@ if (!function_exists('cookie')) {
 	}
 }
 
+if (!function_exists("plugins_path")) {
+    function plugins_path() {
+        return app()->appPath('Plugins');
+    }
+}
+
+if (!function_exists("load_plugins")) {
+    function load_plugins() {
+        $plugins_path = plugins_path();
+        if (!is_dir($plugins_path)) {
+            return ;
+        }
+        $handle  = opendir($plugins_path);
+        if ($handle) {
+            while (false !== ($item = readdir($handle))) {
+                if ('.' != $item && '..' != $item) {
+                    $dir = $plugins_path . DIRECTORY_SEPARATOR . $item;
+                    if (is_dir($dir) && file_exists($dir . DIRECTORY_SEPARATOR . 'function.php')) {
+                        require_once $dir . DIRECTORY_SEPARATOR . 'function.php';
+                    }
+                }
+            }
+            closedir($handle);
+        }
+    }
+}
+
+// 插件载入
+app()->hook('lee.before', 'load_plugins');
+
 app()->hook('lee.after', function() {
-	app()->log()->save();
+    app()->log()->save();
 });
 
+require_once __DIR__ . "/plugin.php";
