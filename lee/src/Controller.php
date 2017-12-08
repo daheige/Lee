@@ -34,11 +34,25 @@ abstract class Controller {
 	 */
 	protected $view = null;
 
+	/**
+	 * 路由
+	 * @var Lee\Route\Router
+	 */
+	protected $router;
+
+	/**
+	 * 当前路由
+	 * @var Lee\Route\Route
+	 */
+	protected $route;
+
 	protected $viewPathPrefix = '';
 
 	public function __construct() {
-		$this->app  = app();
-		$this->view = $this->app->view();
+		$this->app    = app();
+		$this->view   = $this->app->view();
+		$this->router = $this->app->router();
+		$this->route  = $this->router->getCurrentRoute();
 	}
 
 	/**
@@ -144,7 +158,7 @@ abstract class Controller {
 	 */
 	protected function ajaxReturn($data, $type = '', $json_option = JSON_UNESCAPED_UNICODE) {
 		if (empty($type)) {
-			$type = config('DEFAULT_AJAX_RETURN');
+			$type = config('default_ajax_return');
 		}
 		switch (strtoupper($type)) {
 		case 'JSON':
@@ -156,7 +170,7 @@ abstract class Controller {
 			$this->app->response()->header(['Content-Type' => 'text/xml', 'charset' => 'utf-8'])->setBody(xml_encode($data))->send();
 			return;
 		case 'JSONP':
-			$handler = isset($_GET[config('VAR_JSONP_HANDLER')]) ? $_GET[config('VAR_JSONP_HANDLER')] : config('DEFAULT_JSONP_HANDLER');
+			$handler = isset($_GET[config('var_jsonp_handler')]) ? $_GET[config('var_jsonp_handler')] : config('default_jsonp_handler');
 			// 返回JSON数据格式到客户端 包含状态信息
 			$this->app->response()->header(['Content-Type' => 'application/json', 'charset' => 'utf-8'])->setBody($handler . '(' . json_encode($data, $json_option) . ');')->send();
 			return;

@@ -118,6 +118,7 @@ class Application {
 		$this->container['settings'] = [];
 
 		// load system config
+		$this->configure('app');
 		$this->configure('app', false);
 
 		$this->registerAliases();
