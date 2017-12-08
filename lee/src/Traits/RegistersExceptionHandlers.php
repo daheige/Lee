@@ -40,8 +40,25 @@ trait RegistersExceptionHandlers {
 	 * @throws \ErrorException
 	 */
 	public function handleError($level, $message, $file = '', $line = 0, $context = []) {
-		if (error_reporting() & $level) {
+		/*if (error_reporting() & $level) {
 			throw new ErrorException($message, 0, $level, $file, $line);
+		}*/
+		switch ($level) {
+			case E_ERROR:
+			case E_PARSE:
+			case E_CORE_ERROR:
+			case E_COMPILE_ERROR:
+			case E_USER_ERROR:
+				throw new ErrorException($message, 0, $level, $file, $line);
+			break;
+			default:
+				if (defined('APP_DEBUG') && APP_DEBUG) {
+					if ($level) {
+						throw new ErrorException($message, 0, $level, $file, $line);
+					}
+				}
+				$this->log()->error("[$level] $message " . $file . " 第 $line 行.", $this->storagePath('log') . '/' . date("Y-m-d") . ".log");
+			break;
 		}
 	}
 
@@ -85,12 +102,12 @@ trait RegistersExceptionHandlers {
 		$this->response()->status(500);
 		$this->response()->body($content);
 		$this->response()->send();
-		$log_sring = "Code: " . $e->getCode();
-		$log_sring .= "\n Message: " . $e->getMessage();
-		$log_sring .= "\n File: " . $e->getFile();
-		$log_sring .= "\n Line: " . $e->getLine();
-		$log_sring .= $e->getTraceAsString();
-		$this->log()->error($log_sring, $this->storagePath('log') . '/' . date("Y-m-d") . ".log");
+		$log_string = "Code: " . $e->getCode();
+		$log_string .= "\n Message: " . $e->getMessage();
+		$log_string .= "\n File: " . $e->getFile();
+		$log_string .= "\n Line: " . $e->getLine();
+		$log_string .= $e->getTraceAsString();
+		$this->log()->error($log_string, $this->storagePath('log') . '/' . date("Y-m-d") . ".log");
 		$this->applyHook('lee.after');
 	}
 

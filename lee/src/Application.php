@@ -117,9 +117,6 @@ class Application {
 		$this->container             = new \Lee\Helper\Set();
 		$this->container['settings'] = [];
 
-		// 载入helper
-		require __DIR__ . '/helpers.php';
-
 		// load system config
 		$this->configure('app', false);
 

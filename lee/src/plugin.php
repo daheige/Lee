@@ -21,20 +21,20 @@
  * @since 1.5.0
  */
 
-/** @var WP_Hook[] $wp_filter */
-global $wp_filter, $wp_actions, $wp_current_filter;
+/** @var Hook[] $lee_filter */
+global $lee_filter, $lee_actions, $lee_current_filter;
 
-if ( $wp_filter ) {
-    $wp_filter = \Lee\WP_Hook::build_preinitialized_hooks( $wp_filter );
+if ( $lee_filter ) {
+    $lee_filter = \Lee\Hook::build_preinitialized_hooks( $lee_filter );
 } else {
-    $wp_filter = array();
+    $lee_filter = array();
 }
 
-if ( ! isset( $wp_actions ) )
-    $wp_actions = array();
+if ( ! isset( $lee_actions ) )
+    $lee_actions = array();
 
-if ( ! isset( $wp_current_filter ) )
-    $wp_current_filter = array();
+if ( ! isset( $lee_current_filter ) )
+    $lee_current_filter = array();
 
 /**
  * Hook a function or method to a specific filter action.
@@ -88,7 +88,7 @@ if ( ! isset( $wp_current_filter ) )
  *
  * @since 0.71
  *
- * @global array $wp_filter      A multidimensional array of all hooks and the callbacks hooked to them.
+ * @global array $lee_filter      A multidimensional array of all hooks and the callbacks hooked to them.
  *
  * @param string   $tag             The name of the filter to hook the $function_to_add callback to.
  * @param callable $function_to_add The callback to be run when the filter is applied.
@@ -101,11 +101,11 @@ if ( ! isset( $wp_current_filter ) )
  * @return true
  */
 function add_filter( $tag, $function_to_add, $priority = 10, $accepted_args = 1 ) {
-    global $wp_filter;
-    if ( ! isset( $wp_filter[ $tag ] ) ) {
-        $wp_filter[ $tag ] = new \Lee\WP_Hook();
+    global $lee_filter;
+    if ( ! isset( $lee_filter[ $tag ] ) ) {
+        $lee_filter[ $tag ] = new \Lee\Hook();
     }
-    $wp_filter[ $tag ]->add_filter( $tag, $function_to_add, $priority, $accepted_args );
+    $lee_filter[ $tag ]->add_filter( $tag, $function_to_add, $priority, $accepted_args );
     return true;
 }
 
@@ -114,7 +114,7 @@ function add_filter( $tag, $function_to_add, $priority = 10, $accepted_args = 1 
  *
  * @since 2.5.0
  *
- * @global array $wp_filter Stores all of the filters.
+ * @global array $lee_filter Stores all of the filters.
  *
  * @param string        $tag               The name of the filter hook.
  * @param callable|bool $function_to_check Optional. The callback to check for. Default false.
@@ -126,13 +126,13 @@ function add_filter( $tag, $function_to_add, $priority = 10, $accepted_args = 1 
  *                   return value.
  */
 function has_filter($tag, $function_to_check = false) {
-    global $wp_filter;
+    global $lee_filter;
 
-    if ( ! isset( $wp_filter[ $tag ] ) ) {
+    if ( ! isset( $lee_filter[ $tag ] ) ) {
         return false;
     }
 
-    return $wp_filter[ $tag ]->has_filter( $tag, $function_to_check );
+    return $lee_filter[ $tag ]->has_filter( $tag, $function_to_check );
 }
 
 /**
@@ -162,8 +162,8 @@ function has_filter($tag, $function_to_check = false) {
  *
  * @since 0.71
  *
- * @global array $wp_filter         Stores all of the filters.
- * @global array $wp_current_filter Stores the list of current filters with the current one last.
+ * @global array $lee_filter         Stores all of the filters.
+ * @global array $lee_current_filter Stores the list of current filters with the current one last.
  *
  * @param string $tag     The name of the filter hook.
  * @param mixed  $value   The value on which the filters hooked to `$tag` are applied on.
@@ -171,35 +171,35 @@ function has_filter($tag, $function_to_check = false) {
  * @return mixed The filtered value after all hooked functions are applied to it.
  */
 function apply_filters( $tag, $value ) {
-    global $wp_filter, $wp_current_filter;
+    global $lee_filter, $lee_current_filter;
 
     $args = array();
 
     // Do 'all' actions first.
-    if ( isset($wp_filter['all']) ) {
-        $wp_current_filter[] = $tag;
+    if ( isset($lee_filter['all']) ) {
+        $lee_current_filter[] = $tag;
         $args = func_get_args();
         _wp_call_all_hook($args);
     }
 
-    if ( !isset($wp_filter[$tag]) ) {
-        if ( isset($wp_filter['all']) )
-            array_pop($wp_current_filter);
+    if ( !isset($lee_filter[$tag]) ) {
+        if ( isset($lee_filter['all']) )
+            array_pop($lee_current_filter);
         return $value;
     }
 
-    if ( !isset($wp_filter['all']) )
-        $wp_current_filter[] = $tag;
+    if ( !isset($lee_filter['all']) )
+        $lee_current_filter[] = $tag;
 
     if ( empty($args) )
         $args = func_get_args();
 
-    // don't pass the tag name to \Lee\WP_Hook
+    // don't pass the tag name to \Lee\Hook
     array_shift( $args );
 
-    $filtered = $wp_filter[ $tag ]->apply_filters( $value, $args );
+    $filtered = $lee_filter[ $tag ]->apply_filters( $value, $args );
 
-    array_pop( $wp_current_filter );
+    array_pop( $lee_current_filter );
 
     return $filtered;
 }
@@ -212,35 +212,35 @@ function apply_filters( $tag, $value ) {
  * @see apply_filters() This function is identical, but the arguments passed to the
  * functions hooked to `$tag` are supplied using an array.
  *
- * @global array $wp_filter         Stores all of the filters
- * @global array $wp_current_filter Stores the list of current filters with the current one last
+ * @global array $lee_filter         Stores all of the filters
+ * @global array $lee_current_filter Stores the list of current filters with the current one last
  *
  * @param string $tag  The name of the filter hook.
  * @param array  $args The arguments supplied to the functions hooked to $tag.
  * @return mixed The filtered value after all hooked functions are applied to it.
  */
 function apply_filters_ref_array($tag, $args) {
-    global $wp_filter, $wp_current_filter;
+    global $lee_filter, $lee_current_filter;
 
     // Do 'all' actions first
-    if ( isset($wp_filter['all']) ) {
-        $wp_current_filter[] = $tag;
+    if ( isset($lee_filter['all']) ) {
+        $lee_current_filter[] = $tag;
         $all_args = func_get_args();
         _wp_call_all_hook($all_args);
     }
 
-    if ( !isset($wp_filter[$tag]) ) {
-        if ( isset($wp_filter['all']) )
-            array_pop($wp_current_filter);
+    if ( !isset($lee_filter[$tag]) ) {
+        if ( isset($lee_filter['all']) )
+            array_pop($lee_current_filter);
         return $args[0];
     }
 
-    if ( !isset($wp_filter['all']) )
-        $wp_current_filter[] = $tag;
+    if ( !isset($lee_filter['all']) )
+        $lee_current_filter[] = $tag;
 
-    $filtered = $wp_filter[ $tag ]->apply_filters( $args[0], $args );
+    $filtered = $lee_filter[ $tag ]->apply_filters( $args[0], $args );
 
-    array_pop( $wp_current_filter );
+    array_pop( $lee_current_filter );
 
     return $filtered;
 }
@@ -258,7 +258,7 @@ function apply_filters_ref_array($tag, $args) {
  *
  * @since 1.2.0
  *
- * @global array $wp_filter         Stores all of the filters
+ * @global array $lee_filter         Stores all of the filters
  *
  * @param string   $tag                The filter hook to which the function to be removed is hooked.
  * @param callable $function_to_remove The name of the function which should be removed.
@@ -266,13 +266,13 @@ function apply_filters_ref_array($tag, $args) {
  * @return bool    Whether the function existed before it was removed.
  */
 function remove_filter( $tag, $function_to_remove, $priority = 10 ) {
-    global $wp_filter;
+    global $lee_filter;
 
     $r = false;
-    if ( isset( $wp_filter[ $tag ] ) ) {
-        $r = $wp_filter[ $tag ]->remove_filter( $tag, $function_to_remove, $priority );
-        if ( ! $wp_filter[ $tag ]->callbacks ) {
-            unset( $wp_filter[ $tag ] );
+    if ( isset( $lee_filter[ $tag ] ) ) {
+        $r = $lee_filter[ $tag ]->remove_filter( $tag, $function_to_remove, $priority );
+        if ( ! $lee_filter[ $tag ]->callbacks ) {
+            unset( $lee_filter[ $tag ] );
         }
     }
 
@@ -284,19 +284,19 @@ function remove_filter( $tag, $function_to_remove, $priority = 10 ) {
  *
  * @since 2.7.0
  *
- * @global array $wp_filter  Stores all of the filters
+ * @global array $lee_filter  Stores all of the filters
  *
  * @param string   $tag      The filter to remove hooks from.
  * @param int|bool $priority Optional. The priority number to remove. Default false.
  * @return true True when finished.
  */
 function remove_all_filters( $tag, $priority = false ) {
-    global $wp_filter;
+    global $lee_filter;
 
-    if ( isset( $wp_filter[ $tag ]) ) {
-        $wp_filter[ $tag ]->remove_all_filters( $priority );
-        if ( ! $wp_filter[ $tag ]->has_filters() ) {
-            unset( $wp_filter[ $tag ] );
+    if ( isset( $lee_filter[ $tag ]) ) {
+        $lee_filter[ $tag ]->remove_all_filters( $priority );
+        if ( ! $lee_filter[ $tag ]->has_filters() ) {
+            unset( $lee_filter[ $tag ] );
         }
     }
 
@@ -308,13 +308,13 @@ function remove_all_filters( $tag, $priority = false ) {
  *
  * @since 2.5.0
  *
- * @global array $wp_current_filter Stores the list of current filters with the current one last
+ * @global array $lee_current_filter Stores the list of current filters with the current one last
  *
  * @return string Hook name of the current filter or action.
  */
 function current_filter() {
-    global $wp_current_filter;
-    return end( $wp_current_filter );
+    global $lee_current_filter;
+    return end( $lee_current_filter );
 }
 
 /**
@@ -343,20 +343,20 @@ function current_action() {
  *
  * @see current_filter()
  * @see did_action()
- * @global array $wp_current_filter Current filter.
+ * @global array $lee_current_filter Current filter.
  *
  * @param null|string $filter Optional. Filter to check. Defaults to null, which
  *                            checks if any filter is currently being run.
  * @return bool Whether the filter is currently in the stack.
  */
 function doing_filter( $filter = null ) {
-    global $wp_current_filter;
+    global $lee_current_filter;
 
     if ( null === $filter ) {
-        return ! empty( $wp_current_filter );
+        return ! empty( $lee_current_filter );
     }
 
-    return in_array( $filter, $wp_current_filter );
+    return in_array( $filter, $lee_current_filter );
 }
 
 /**
@@ -407,37 +407,37 @@ function add_action($tag, $function_to_add, $priority = 10, $accepted_args = 1) 
  *
  * @since 1.2.0
  *
- * @global array $wp_filter         Stores all of the filters
- * @global array $wp_actions        Increments the amount of times action was triggered.
- * @global array $wp_current_filter Stores the list of current filters with the current one last
+ * @global array $lee_filter         Stores all of the filters
+ * @global array $lee_actions        Increments the amount of times action was triggered.
+ * @global array $lee_current_filter Stores the list of current filters with the current one last
  *
  * @param string $tag     The name of the action to be executed.
  * @param mixed  $arg,... Optional. Additional arguments which are passed on to the
  *                        functions hooked to the action. Default empty.
  */
 function do_action($tag, $arg = '') {
-    global $wp_filter, $wp_actions, $wp_current_filter;
+    global $lee_filter, $lee_actions, $lee_current_filter;
 
-    if ( ! isset($wp_actions[$tag]) )
-        $wp_actions[$tag] = 1;
+    if ( ! isset($lee_actions[$tag]) )
+        $lee_actions[$tag] = 1;
     else
-        ++$wp_actions[$tag];
+        ++$lee_actions[$tag];
 
     // Do 'all' actions first
-    if ( isset($wp_filter['all']) ) {
-        $wp_current_filter[] = $tag;
+    if ( isset($lee_filter['all']) ) {
+        $lee_current_filter[] = $tag;
         $all_args = func_get_args();
         _wp_call_all_hook($all_args);
     }
 
-    if ( !isset($wp_filter[$tag]) ) {
-        if ( isset($wp_filter['all']) )
-            array_pop($wp_current_filter);
+    if ( !isset($lee_filter[$tag]) ) {
+        if ( isset($lee_filter['all']) )
+            array_pop($lee_current_filter);
         return;
     }
 
-    if ( !isset($wp_filter['all']) )
-        $wp_current_filter[] = $tag;
+    if ( !isset($lee_filter['all']) )
+        $lee_current_filter[] = $tag;
 
     $args = array();
     if ( is_array($arg) && 1 == count($arg) && isset($arg[0]) && is_object($arg[0]) ) // array(&$this)
@@ -447,9 +447,9 @@ function do_action($tag, $arg = '') {
     for ( $a = 2, $num = func_num_args(); $a < $num; $a++ )
         $args[] = func_get_arg($a);
 
-    $wp_filter[ $tag ]->do_action( $args );
+    $lee_filter[ $tag ]->do_action( $args );
 
-    array_pop($wp_current_filter);
+    array_pop($lee_current_filter);
 }
 
 /**
@@ -457,18 +457,18 @@ function do_action($tag, $arg = '') {
  *
  * @since 2.1.0
  *
- * @global array $wp_actions Increments the amount of times action was triggered.
+ * @global array $lee_actions Increments the amount of times action was triggered.
  *
  * @param string $tag The name of the action hook.
  * @return int The number of times action hook $tag is fired.
  */
 function did_action($tag) {
-    global $wp_actions;
+    global $lee_actions;
 
-    if ( ! isset( $wp_actions[ $tag ] ) )
+    if ( ! isset( $lee_actions[ $tag ] ) )
         return 0;
 
-    return $wp_actions[$tag];
+    return $lee_actions[$tag];
 }
 
 /**
@@ -478,40 +478,40 @@ function did_action($tag) {
  *
  * @see do_action() This function is identical, but the arguments passed to the
  *                  functions hooked to $tag< are supplied using an array.
- * @global array $wp_filter         Stores all of the filters
- * @global array $wp_actions        Increments the amount of times action was triggered.
- * @global array $wp_current_filter Stores the list of current filters with the current one last
+ * @global array $lee_filter         Stores all of the filters
+ * @global array $lee_actions        Increments the amount of times action was triggered.
+ * @global array $lee_current_filter Stores the list of current filters with the current one last
  *
  * @param string $tag  The name of the action to be executed.
  * @param array  $args The arguments supplied to the functions hooked to `$tag`.
  */
 function do_action_ref_array($tag, $args) {
-    global $wp_filter, $wp_actions, $wp_current_filter;
+    global $lee_filter, $lee_actions, $lee_current_filter;
 
-    if ( ! isset($wp_actions[$tag]) )
-        $wp_actions[$tag] = 1;
+    if ( ! isset($lee_actions[$tag]) )
+        $lee_actions[$tag] = 1;
     else
-        ++$wp_actions[$tag];
+        ++$lee_actions[$tag];
 
     // Do 'all' actions first
-    if ( isset($wp_filter['all']) ) {
-        $wp_current_filter[] = $tag;
+    if ( isset($lee_filter['all']) ) {
+        $lee_current_filter[] = $tag;
         $all_args = func_get_args();
         _wp_call_all_hook($all_args);
     }
 
-    if ( !isset($wp_filter[$tag]) ) {
-        if ( isset($wp_filter['all']) )
-            array_pop($wp_current_filter);
+    if ( !isset($lee_filter[$tag]) ) {
+        if ( isset($lee_filter['all']) )
+            array_pop($lee_current_filter);
         return;
     }
 
-    if ( !isset($wp_filter['all']) )
-        $wp_current_filter[] = $tag;
+    if ( !isset($lee_filter['all']) )
+        $lee_current_filter[] = $tag;
 
-    $wp_filter[ $tag ]->do_action( $args );
+    $lee_filter[ $tag ]->do_action( $args );
 
-    array_pop($wp_current_filter);
+    array_pop($lee_current_filter);
 }
 
 /**
@@ -563,60 +563,6 @@ function remove_action( $tag, $function_to_remove, $priority = 10 ) {
  */
 function remove_all_actions($tag, $priority = false) {
     return remove_all_filters($tag, $priority);
-}
-
-/**
- * Fires functions attached to a deprecated filter hook.
- *
- * When a filter hook is deprecated, the apply_filters() call is replaced with
- * apply_filters_deprecated(), which triggers a deprecation notice and then fires
- * the original filter hook.
- *
- * @since 4.6.0
- *
- * @see _deprecated_hook()
- *
- * @param string $tag         The name of the filter hook.
- * @param array  $args        Array of additional function arguments to be passed to apply_filters().
- * @param string $version     The version of WordPress that deprecated the hook.
- * @param string $replacement Optional. The hook that should have been used. Default false.
- * @param string $message     Optional. A message regarding the change. Default null.
- */
-function apply_filters_deprecated( $tag, $args, $version, $replacement = false, $message = null ) {
-    if ( ! has_filter( $tag ) ) {
-        return $args[0];
-    }
-
-    _deprecated_hook( $tag, $version, $replacement, $message );
-
-    return apply_filters_ref_array( $tag, $args );
-}
-
-/**
- * Fires functions attached to a deprecated action hook.
- *
- * When an action hook is deprecated, the do_action() call is replaced with
- * do_action_deprecated(), which triggers a deprecation notice and then fires
- * the original hook.
- *
- * @since 4.6.0
- *
- * @see _deprecated_hook()
- *
- * @param string $tag         The name of the action hook.
- * @param array  $args        Array of additional function arguments to be passed to do_action().
- * @param string $version     The version of WordPress that deprecated the hook.
- * @param string $replacement Optional. The hook that should have been used.
- * @param string $message     Optional. A message regarding the change.
- */
-function do_action_deprecated( $tag, $args, $version, $replacement = false, $message = null ) {
-    if ( ! has_action( $tag ) ) {
-        return;
-    }
-
-    _deprecated_hook( $tag, $version, $replacement, $message );
-
-    do_action_ref_array( $tag, $args );
 }
 
 //
@@ -824,14 +770,14 @@ function register_uninstall_hook( $file, $callback ) {
  * @since 2.5.0
  * @access private
  *
- * @global array $wp_filter  Stores all of the filters
+ * @global array $lee_filter  Stores all of the filters
  *
  * @param array $args The collected parameters from the hook that was called.
  */
 function _wp_call_all_hook($args) {
-    global $wp_filter;
+    global $lee_filter;
 
-    $wp_filter['all']->do_all_hook( $args );
+    $lee_filter['all']->do_all_hook( $args );
 }
 
 /**
@@ -856,7 +802,7 @@ function _wp_call_all_hook($args) {
  * @since 2.2.3
  * @access private
  *
- * @global array $wp_filter Storage for all of the filters and actions.
+ * @global array $lee_filter Storage for all of the filters and actions.
  * @staticvar int $filter_id_count
  *
  * @param string   $tag      Used in counting how many hooks were applied
@@ -869,7 +815,7 @@ function _wp_call_all_hook($args) {
  *                      a unique id.
  */
 function _wp_filter_build_unique_id($tag, $function, $priority) {
-    global $wp_filter;
+    global $lee_filter;
     static $filter_id_count = 0;
 
     if ( is_string($function) )
@@ -891,7 +837,7 @@ function _wp_filter_build_unique_id($tag, $function, $priority) {
             if ( !isset($function[0]->wp_filter_id) ) {
                 if ( false === $priority )
                     return false;
-                $obj_idx .= isset($wp_filter[$tag][$priority]) ? count((array)$wp_filter[$tag][$priority]) : $filter_id_count;
+                $obj_idx .= isset($lee_filter[$tag][$priority]) ? count((array)$lee_filter[$tag][$priority]) : $filter_id_count;
                 $function[0]->wp_filter_id = $filter_id_count;
                 ++$filter_id_count;
             } else {

@@ -4,6 +4,17 @@
     "keywords": ["PHP framework", "Lee"],
     "license": "MIT",
     "type": "project",
+    "homepage": "http://hhailuo.com",
+    "support": {
+        "issues": "https://github.com/xiaoyao-work/lee/issues",
+        "source": "https://github.com/xiaoyao-work/lee"
+    },
+    "authors": [
+        {
+            "name": "Lee / 逍遥·李志亮",
+            "email": "xiaoyao.working@gmail.com"
+        }
+    ],
     "require": {
         "php": ">=5.4.0",
         "lee/blade": "1.*",
@@ -13,7 +24,11 @@
         "psr-4": {
             "App\\": "app/",
             "Lee\\": "lee/src/"
-        }
+        },
+        "files": [
+            "lee/src/helpers.php",
+            "lee/src/plugin.php"
+        ]
     },
     "repositories": [
         {

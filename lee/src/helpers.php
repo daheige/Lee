@@ -155,12 +155,3 @@ if (!function_exists("load_plugins")) {
         }
     }
 }
-
-// 插件载入
-app()->hook('lee.before', 'load_plugins');
-
-app()->hook('lee.after', function() {
-    app()->log()->save();
-});
-
-require_once __DIR__ . "/plugin.php";

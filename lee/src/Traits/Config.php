@@ -18,10 +18,11 @@ trait Config {
      * @return void
      */
     public function configure($name, $add_filename_to_key = true) {
-        if (isset($this->loadedConfigurations[$name])) {
+        $key = $name . $add_filename_to_key;
+        if (isset($this->loadedConfigurations[$key])) {
             return;
         }
-        $this->loadedConfigurations[$name] = true;
+        $this->loadedConfigurations[$key] = true;
         $default_config_path               = realpath(__DIR__ . '/../../config/' . $name . '.php');
         if (file_exists($default_config_path)) {
             $default_config = require $default_config_path;

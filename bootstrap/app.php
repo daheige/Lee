@@ -30,6 +30,13 @@ $app = new \Lee\Application(
     realpath(__DIR__ . '/../')
 );
 
+// 插件载入
+$app->hook('lee.before', 'load_plugins');
+
+$app->hook('lee.after', function() {
+    app()->log()->save();
+});
+
 /*
 |--------------------------------------------------------------------------
 | Register Middleware

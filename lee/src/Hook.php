@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin API: WP_Hook class
+ * Plugin API: Hook class
  *
  * @package WordPress
  * @subpackage Plugin
@@ -16,7 +16,7 @@ namespace Lee;
  * @see Iterator
  * @see ArrayAccess
  */
-final class WP_Hook implements \Iterator, \ArrayAccess {
+final class Hook implements \Iterator, \ArrayAccess {
 
     /**
      * Hook callbacks.
@@ -369,25 +369,25 @@ final class WP_Hook implements \Iterator, \ArrayAccess {
     }
 
     /**
-     * Normalizes filters set up before WordPress has initialized to WP_Hook objects.
+     * Normalizes filters set up before WordPress has initialized to Hook objects.
      *
      * @since 4.7.0
      * @access public
      * @static
      *
      * @param array $filters Filters to normalize.
-     * @return WP_Hook[] Array of normalized filters.
+     * @return Hook[] Array of normalized filters.
      */
     public static function build_preinitialized_hooks( $filters ) {
-        /** @var WP_Hook[] $normalized */
+        /** @var Hook[] $normalized */
         $normalized = array();
 
         foreach ( $filters as $tag => $callback_groups ) {
-            if ( is_object( $callback_groups ) && $callback_groups instanceof WP_Hook ) {
+            if ( is_object( $callback_groups ) && $callback_groups instanceof Hook ) {
                 $normalized[ $tag ] = $callback_groups;
                 continue;
             }
-            $hook = new WP_Hook();
+            $hook = new Hook();
 
             // Loop through callback groups.
             foreach ( $callback_groups as $priority => $callbacks ) {
